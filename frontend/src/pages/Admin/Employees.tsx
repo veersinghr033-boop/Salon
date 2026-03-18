@@ -22,6 +22,8 @@ import {
     DeleteOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+
 
 const { Content } = Layout;
 
@@ -29,7 +31,11 @@ interface Employee {
     id: string;
     name: string;
     email: string;
-    services: string[];
+    services: Array<{
+        id: string;
+        name: string;
+        price: number;
+    }>;
     status: "Active" | "Inactive";
     salonId: string;
 }
@@ -37,6 +43,7 @@ interface Employee {
 interface Service {
     _id: string;
     name: string;
+    salonId: string;
 }
 
 function Employees() {
@@ -50,32 +57,28 @@ function Employees() {
     const [loading, setLoading] = useState(false);
 
     const [form] = Form.useForm();
-
+    const { user } = useAuth();
 
     useEffect(() => {
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-        if (storedUser.role === "Admin" && storedUser.salonId) {
-            setSalonId(storedUser.salonId);
+        if (user?.role === "Admin" && user.salonId) {
+            setSalonId(user.salonId);
         }
-    }, []);
+    }, [user]);
+    console.log(salonId)
 
 
     const loadServices = async () => {
         try {
             const res = await fetch("http://localhost:3500/api/auth/services", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
+                credentials: "include",
             });
             const data = await res.json();
 
-            if (Array.isArray(data)) {
-                const filtered = salonId
-                    ? data.filter((s: any) => s.salonId === salonId)
-                    : data;
+            const filtered = data.filter((service: Service) => service.salonId === salonId);
 
-                setServicesData(filtered);
-            }
+
+            setServicesData(filtered);
+
         } catch {
             message.error("Failed to load services");
         }
@@ -86,29 +89,29 @@ function Employees() {
         try {
             setLoading(true);
             const res = await fetch("http://localhost:3500/api/auth/employees", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
+                credentials: "include",
             });
             const data = await res.json();
+            console.log(data)
 
             if (Array.isArray(data)) {
                 const filtered = salonId
                     ? data.filter((emp: any) => emp.salonId === salonId)
                     : data;
-
+                console.log(filtered)
                 setEmployees(
                     filtered.map((emp: any) => ({
                         id: emp._id,
                         name: emp.fullName,
                         email: emp.email,
-                        services: emp.Services || [],
+                        services: emp.services || [],
                         status: emp.isActive ? "Active" : "Inactive",
                         salonId: emp.salonId
                     }))
                 );
             } else {
                 setEmployees([]);
+                message.error(data.message || "Failed to load employees");
             }
         } catch {
             message.error("Failed to load employees");
@@ -142,9 +145,9 @@ function Employees() {
                     `http://localhost:3500/api/auth/employees/${editingEmployee.id}`,
                     {
                         method: "PUT",
+                        credentials: "include",
                         headers: {
                             "Content-Type": "application/json",
-                            Authorization: `Bearer ${localStorage.getItem("token")}`,
                         },
                         body: JSON.stringify(payload),
                     }
@@ -158,9 +161,9 @@ function Employees() {
             } else {
                 const res = await fetch("http://localhost:3500/api/auth/employees", {
                     method: "POST",
+                    credentials: "include",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
                     },
 
                     body: JSON.stringify(payload),
@@ -169,7 +172,7 @@ function Employees() {
                 if (!res.ok) {
                     message.error(data.message || "Failed to add employee");
                 } else {
-                    message.success("Employee added");
+                    message.success(data.message || "Employee added");
                 }
             }
 
@@ -188,9 +191,7 @@ function Employees() {
         try {
             await fetch(`http://localhost:3500/api/auth/employees/${id}`, {
                 method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
+                credentials: "include",
             });
             message.success("Employee deleted");
             loadEmployees();
@@ -213,7 +214,7 @@ function Employees() {
 
     return (
         <Layout rootClassName="min-h-screen !bg-slate-100">
-            <Sidebar/>
+            <Sidebar />
 
             <Content className="p-4 md:p-6 md:ml-64">
 
@@ -270,11 +271,13 @@ function Employees() {
                                 <div className="mb-4">
                                     <p className="text-sm font-semibold mb-2">Services</p>
                                     <div className="flex flex-wrap gap-2">
-                                        {employee.services.map(serviceId => {
-                                            const serviceName =
-                                                servicesData.find(s => s._id === serviceId)?.name;
-                                            return <Tag key={serviceId}>{serviceName}</Tag>;
-                                        })}
+                                        {employee.services.length > 0 ? (
+                                            employee.services.map((service, idx) => (
+                                                <Tag key={idx}>{service.name}</Tag>
+                                            ))
+                                        ) : (
+                                            <span className="text-gray-500 text-sm">No services assigned</span>
+                                        )}
                                     </div>
                                 </div>
 

@@ -25,9 +25,7 @@ function NewRequests() {
 
     const load = async () => {
         const response = await fetch("http://localhost:3500/api/auth/salon", {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            credentials: "include",
         });
         const data = await response.json();
 
@@ -52,9 +50,7 @@ function NewRequests() {
     const handleApprove = async (id: string) => {
         await fetch(`http://localhost:3500/api/auth/salon/${id}/approve`, {
             method: "PATCH",
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            credentials: "include",
         });
 
         setRequests(prev =>

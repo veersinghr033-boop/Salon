@@ -72,3 +72,29 @@ export const updateService = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+// const employees = await Employee.aggregate([
+//   {
+//     $lookup: {
+//       from: "services",
+//       localField: "Services",
+//       foreignField: "_id",
+//       as: "servicesDetails",
+//     },
+//   },
+//   {
+//     $unwind: {
+//       path: "$servicesDetails",
+//       preserveNullAndEmptyArrays: true,
+//     },
+//   },
+//   {
+//     $project: {
+//       // password: 1,
+//       services: "$servicesDetails.name",
+//       fullName: 1,
+//       email: 1,
+//       salonId: 1,
+//       isActive: 1,
+//     },
+//   },
+// ]);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState ,useMemo,memo} from "react";
 import {
     Layout,
     Input,
@@ -11,6 +11,7 @@ import {
 import { EnvironmentOutlined } from "@ant-design/icons";
 import Sidebar from "../../components/Sidebar";
 import BookingFlow from "./BookAppointment";
+import { useAuth } from "../../context/AuthContext";
 
 const { Content } = Layout;
 const { Search } = Input;
@@ -23,7 +24,7 @@ interface Salon {
     hours?: Record<string, string>;
     services?: { id: string; name: string; duration: number; price: number }[];
     employees?: { id: string; name: string }[];
-
+    
 }
 
 const CustomerDashboard: React.FC = () => {
@@ -33,27 +34,22 @@ const CustomerDashboard: React.FC = () => {
     const [salonsData, setSalonsData] = useState<Salon[]>([]);
     const [loading, setLoading] = useState(false);
     const [custormerId, setCustormerId] = useState("")
+    const { user} = useAuth();
 
-    useEffect(() => {
-        const user = localStorage.getItem("user");
-        if (user) {
-            const parsedUser = JSON.parse(user);
-            setCustormerId(parsedUser.user.id);
-
+    useEffect(()=>{
+        if(user?.role === "customer"){
+            setCustormerId(user?.customerId || "")
         }
-    }, [])
+    },[user])
     const load = async () => {
         setLoading(true);
         try {
             const response = await fetch("http://localhost:3500/api/auth/salon", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
+                credentials: "include",
             });
             const data = await response.json();
             console.log(data)
-
-            const formatted = data.filter((salon: any) => salon.isApproved).map((salon: any) => ({
+            const formatted = data.filter((salon: any) => salon.isApproved && salon.isActive ).map((salon: any) => ({
                 id: salon._id,
                 name: salon.salonName,
                 ownerName: salon.ownerName,
@@ -91,7 +87,7 @@ const CustomerDashboard: React.FC = () => {
     }, []);
 
 
-    const isSalonOpenNow = (hours?: Record<string, string>) => {
+    const isSalonOpenNow =  (hours?: Record<string, string>) => {
         if (!hours) return false;
 
         const now = new Date();
@@ -129,12 +125,11 @@ const CustomerDashboard: React.FC = () => {
             ...s,
             isOpen: isSalonOpenNow(s.hours),
         }));
-    console.log(custormerId)
 
 
     return (
         <Layout rootClassName="min-h-screen !bg-slate-100">
-            <Sidebar />
+            <Sidebar  />
 
             <Content className="p-4 md:p-6 md:ml-64">
                 <header className="mb-6">
@@ -250,4 +245,4 @@ const CustomerDashboard: React.FC = () => {
     );
 };
 
-export default CustomerDashboard;
+export default memo(CustomerDashboard)

@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { connectDB } from "./src/config/db.js";
 import userRoute from "./src/routes/UserRoute.js";
@@ -17,11 +18,13 @@ const PORT = process.env.PORT;
 
 app.use(
   cors({
+    origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   }),
 );
 app.use(express.json());
+app.use(cookieParser());
 
 app.use("/api/auth", userRoute);
 app.use("/api/auth", salonRoute);

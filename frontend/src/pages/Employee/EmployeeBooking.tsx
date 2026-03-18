@@ -3,6 +3,7 @@ import type { ColumnsType } from "antd/es/table";
 import { useEffect, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import dayjs from "dayjs";
+import { useAuth } from "../../context/AuthContext";
 
 const { Content } = Layout;
 
@@ -22,10 +23,7 @@ interface Booking {
 }
 
 function EmployeeBooking() {
-    const menuItems = [
-        { key: "dashboard", label: "Dashboard", path: "/employee" },
-        { key: "myBookings", label: "My Bookings", path: "/employee/bookings" },
-    ];
+  
 
     const [data, setData] = useState<Booking[]>([]);
     const [activeTab, setActiveTab] = useState<TabType>("all");
@@ -33,14 +31,13 @@ function EmployeeBooking() {
     const [viewData, setViewData] = useState<Booking | null>(null);
     const [loading, setLoading] = useState(false);
     const [employeeId, setEmployeeId] = useState<string | null>(null);
-
+    const { user } = useAuth();
     useEffect(() => {
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-
-        if (storedUser.role === "employee" && storedUser.employee.id) {
-            setEmployeeId(storedUser.employee.id);
+        if (user?.role === "employee") {
+            setEmployeeId(user?.employeeId || null);
         }
-    }, []);
+
+    }, [user])
     console.log(employeeId)
     // calculate end time
     const computeEnd = (start: string, duration: number): string => {
@@ -69,12 +66,11 @@ function EmployeeBooking() {
             setLoading(true);
 
             const res = await fetch("http://localhost:3500/api/auth/bookings", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
+                credentials: "include",
             });
 
             const response = await res.json();
+            console.log(response)
 
             const employeeBookings = response.filter(
                 (b: any) => b.employee?._id === employeeId
@@ -133,9 +129,9 @@ function EmployeeBooking() {
         try {
             await fetch(`http://localhost:3500/api/auth/bookings/${id}`, {
                 method: "PUT",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
                 },
                 body: JSON.stringify({ status }),
             });

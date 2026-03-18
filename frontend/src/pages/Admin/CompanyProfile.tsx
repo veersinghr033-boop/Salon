@@ -20,7 +20,8 @@ import {
 } from "@ant-design/icons";
 
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 const { Content } = Layout;
 
@@ -41,22 +42,19 @@ interface WorkingHour {
 }
 
 function CompanyProfile() {
-   
+
+    const { user } = useAuth();
 
     const [editMode, setEditMode] = useState(false);
     const [info, setInfo] = useState<CompanyInfo | null>(null);
     const [workingHours, setWorkingHours] = useState<WorkingHour[]>([]);
     const [salonId, setSalonId] = useState("");
 
-    // get salon id
     useEffect(() => {
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-
-        if (storedUser.role === "Admin" && storedUser.salonId) {
-            setSalonId(storedUser.salonId);
+        if (user?.role === "Admin" && user?.salonId) {
+            setSalonId(user?.salonId);
         }
-    }, []);
-    console.log(salonId)
+    }, [user]);
 
     useEffect(() => {
         if (salonId) {
@@ -64,13 +62,10 @@ function CompanyProfile() {
         }
     }, [salonId]);
 
-    // load salon info
     const loadCompanyInfo = async () => {
         try {
             const response = await fetch("http://localhost:3500/api/auth/salon", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
+                credentials: "include",
             });
 
             const data = await response.json();
@@ -145,9 +140,9 @@ function CompanyProfile() {
                 `http://localhost:3500/api/auth/salon/${salonId}`,
                 {
                     method: "PATCH",
+                    credentials: "include",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
                     },
                     body: JSON.stringify(updatedInfo),
                 }
@@ -294,12 +289,9 @@ function CompanyProfile() {
                                 />
                             </div>
 
-                            {/* LOGO */}
 
                             <div>
-                                <label>
-                                    <UploadOutlined /> Company Logo
-                                </label>
+                               
 
                                 <Upload
                                     name="logo"
@@ -335,7 +327,7 @@ function CompanyProfile() {
                         </div>
                     </div>
 
-                    {/* WORKING HOURS */}
+                   
 
                     <div className="bg-white shadow rounded-xl p-5">
 
@@ -440,4 +432,4 @@ function CompanyProfile() {
     );
 }
 
-export default CompanyProfile;
+export default memo(CompanyProfile);

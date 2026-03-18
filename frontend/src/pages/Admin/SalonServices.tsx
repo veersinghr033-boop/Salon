@@ -1,7 +1,8 @@
 import Sidebar from "../../components/Sidebar";
 import { Layout, Button, Card, Tag, Input, Modal, Form, Switch, InputNumber, message, } from "antd";
 import { PlusOutlined, SearchOutlined, EditOutlined, ClockCircleOutlined, } from "@ant-design/icons";
-import { useEffect, useState } from "react";
+import { useEffect, useState} from "react";
+import { useAuth } from "../../context/AuthContext";
 
 const { Content } = Layout;
 
@@ -22,6 +23,7 @@ interface FormFields {
 }
 
 function SalonServices() {
+    const { user } = useAuth();
     const [salonId, setSalonId] = useState<string | null>(null);
     const [services, setServices] = useState<Service[]>([]);
     const [search, setSearch] = useState("");
@@ -30,24 +32,22 @@ function SalonServices() {
     const [loading, setLoading] = useState(false);
     const [form] = Form.useForm<FormFields>();
 
+
     useEffect(() => {
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-        if (storedUser.role === "Admin" && storedUser.salonId) {
-            setSalonId(storedUser.salonId);
+        if (user?.role === "Admin" && user.salonId) {
+            setSalonId(user.salonId);
         }
-    }, []);
+    }, [user]);
     useEffect(() => {
         if (salonId) {
             loadServices();
         }
     }, [salonId]);
-    const loadServices = async () => {
+    const loadServices =  async () => {
         try {
             setLoading(true);
             const response = await fetch("http://localhost:3500/api/auth/services", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
+                credentials: "include",
             });
             const data = await response.json();
             const filtered = data.filter((service: Service) => service.salonId === salonId);
@@ -73,9 +73,9 @@ function SalonServices() {
                     `http://localhost:3500/api/auth/services/${editingService._id}`,
                     {
                         method: "PUT",
+                        credentials: "include",
                         headers: {
                             "Content-Type": "application/json",
-                            Authorization: `Bearer ${localStorage.getItem("token")}`
                         },
                         body: JSON.stringify(payload),
                     }
@@ -94,10 +94,9 @@ function SalonServices() {
                     "http://localhost:3500/api/auth/services",
                     {
                         method: "POST",
+                        credentials: "include",
                         headers: {
                             "Content-Type": "application/json",
-                            Authorization: `Bearer ${localStorage.getItem("token")}`
-
                         },
                         body: JSON.stringify(payload),
                     }
@@ -131,8 +130,7 @@ function SalonServices() {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${localStorage.getItem("token")}`
-
+                        credentials: "include"
                     },
                     body: JSON.stringify({ status: updatedStatus }),
                 }

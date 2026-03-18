@@ -11,6 +11,8 @@ import {
 } from "@ant-design/icons";
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+
 
 type SidebarItem = {
     key: string;
@@ -33,19 +35,21 @@ export default function Sidebar({ title = "SaloonBook", items: passedItems, user
     const [role, setRole] = useState<string | null>(null);
     const [userName, setUserName] = useState(passedUserName ?? "");
     const [userRole, setUserRole] = useState(passedUserRole ?? "");
+    const { logout,user } = useAuth();
 
     useEffect(() => {
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-   
-        if (!passedUserName) setUserName(storedUser.user.fullName || storedUser.name || "");
-        if (!passedUserRole) setUserRole(storedUser.role || "");
-        if (!passedItems) setRole(storedUser.role || null);
-    }, [passedItems, passedUserName, passedUserRole]);
+        if (user) {
+            setRole(user.role);
+            setUserName(user.fullName || user.email || "User");
+            setUserRole(user.role);
+        }
+    }, [user]);
 
     const onLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+
         window.location.href = "/login";
+        logout();
+
     };
 
     const items: SidebarItem[] =

@@ -9,8 +9,9 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import Sidebar from "../../components/Sidebar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import dayjs from "dayjs";
+import { useAuth } from "../../context/AuthContext";
 
 const { Content } = Layout;
 
@@ -29,6 +30,7 @@ type Booking = {
   email: string;
   phone: string;
   employee: string;
+  bookingId: string;
 };
 
 type EnrichedBooking = Booking & {
@@ -42,37 +44,35 @@ function CustomerBooking() {
   const [viewData, setViewData] = useState<EnrichedBooking | null>(null);
   const [loading, setLoading] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const { user } = useAuth();
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      const parsed = JSON.parse(user);
-      setCustomerId(parsed.user?.id);
+    if (user?.role === "customer") {
+      setCustomerId(user?.customerId || null);
     }
-  }, []);
+  }, [user]);
 
   const loadBookings = async () => {
     try {
       setLoading(true);
 
       const res = await fetch("http://localhost:3500/api/auth/bookings", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
       });
 
       const result = await res.json();
-
+      console.log(result)
       if (!res.ok) {
         message.error(result.message || "Failed to load bookings");
         return;
       }
-
+      // console.log(result)
       const customerBookings = result.filter(
         (b: any) => b.customer?._id === customerId
       );
 
       const bookingData: Booking[] = customerBookings.map((b: any) => ({
         id: b._id,
+        bookingId: b.bookingId,
         salon: b.salon?.salonName || "",
         address: b.salon?.address || "",
         email: b.salon?.email || "",
@@ -94,9 +94,11 @@ function CustomerBooking() {
     }
   };
 
+
   useEffect(() => {
-    if (customerId) loadBookings();
+    if(customerId) loadBookings();
   }, [customerId]);
+
 
   const now = new Date();
 
@@ -130,9 +132,9 @@ function CustomerBooking() {
     try {
       const res = await fetch(`http://localhost:3500/api/auth/bookings/${cancelId}`, {
         method: "PUT",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({ status: "cancelled" }),
       });
@@ -307,7 +309,7 @@ function CustomerBooking() {
                   {viewData.status}
                 </Tag>
 
-                <span className="text-gray-500">{viewData.id}</span>
+                <span className="text-gray-500">{viewData.bookingId}</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
@@ -353,4 +355,4 @@ function CustomerBooking() {
   );
 }
 
-export default CustomerBooking;
+export default memo(CustomerBooking);

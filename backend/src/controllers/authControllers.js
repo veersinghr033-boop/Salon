@@ -5,7 +5,7 @@ import Employee from "../models/employeeModel.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import employeeModel from "../models/employeeModel.js";
+import mongoose from "mongoose";
 
 dotenv.config();
 const secret_key = process.env.JWT_SECRET;
@@ -28,6 +28,13 @@ export const Signup = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const customer = await Customer.create({
+      fullName,
+      email,
+      phone,
+      password: hashedPassword,
+      role,
+    });
 
     const newUser = new User({
       fullName,
@@ -35,17 +42,10 @@ export const Signup = async (req, res) => {
       email,
       phone,
       password: hashedPassword,
+      customerId: customer._id,
     });
 
     await newUser.save();
-    if (role === "customer") {
-      await Customer.create({
-        fullName,
-        email,
-
-        password: hashedPassword,
-      });
-    }
 
     res.status(201).json({
       message: "Account created successfully",
@@ -66,101 +66,63 @@ export const Login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required" });
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
     }
-    console.log(password);
-
+    console.log(email, password);
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(401).json({ message: "User not found" });
+      return res.status(401).json({
+        message: "User not found",
+      });
     }
+    console.log(user);
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({
+        message: "Invalid credentials",
+      });
     }
 
     const token = jwt.sign(
       {
         id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
         role: user.role,
       },
       secret_key,
       { expiresIn: "1d" },
     );
-    if (user.role === "superadmin") {
-      // const allUsers = await User.find().select("-password");
-      return res.status(200).json({
-        message: "SuperAdmin login successful",
-        token,
-        role: user.role,
 
-        user: {
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-        },
+    res.cookie("authToken", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
 
-        // users: allUsers,
-      });
-    }
-
-    if (user.role === "Admin") {
-      // const allUsers = await User.find().select("-password");
-      const salon = await Salon.findOne({ email: user.email });
-
-      return res.status(200).json({
-        message: "Admin login successful",
-        token,
-        role: user.role,
-
-        user: {
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-        },
-        salonId: salon ? salon._id : null,
-      });
-    }
-
-    if (user.role === "employee") {
-      const employee = await employeeModel.findOne({ email: user.email });
-      if (!employee) {
-        return res.status(404).json({ message: "Employee details not found" });
-      }
-      const salon = await Salon.findById(employee.salonId);
-      return res.status(200).json({
-        message: "Employee login successful",
-        token,
-        role: user.role,
-
-        user: {
-          id: employee._id,
-          fullName: employee.fullName,
-          salonName: salon ? salon.salonName : "N/A",
-          services: employee.Services,
-          role: user.role,
-        },
-      });
-    }
     return res.status(200).json({
       message: "Login successful",
+      success: true,
       token,
-      role: user.role,
       user: {
-        id: user._id,
         fullName: user.fullName,
         email: user.email,
+        phone: user.phone,
         role: user.role,
       },
     });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -214,4 +176,152 @@ export const salonSignup = async (req, res) => {
     console.error("Salon signup error:", error);
     res.status(500).json({ message: "Server error" });
   }
+};
+export const getCurrentUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userDet = await User.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(String(userId)),
+        },
+      },
+      {
+        $lookup: {
+          from: "employees",
+          localField: "employeeId",
+          foreignField: "_id",
+          as: "employeeDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "customers",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "customerDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "salons",
+          localField: "salonId",
+          foreignField: "_id",
+          as: "salonDet",
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$salonDet",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$employeeDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$customerDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          salonId: "$salonDet._id",
+          employeeId: "$employeeDetails._id",
+          customerId: "$customerDetails._id",
+
+        },
+      },
+    ]);
+    if (req.user.role === "customer") {
+      return res.status(200).send({
+        success: true,
+        user: {
+          userId: req.user.id,
+          fullName: req.user.fullName,
+          email: req.user.email,
+          phone: req.user.phone,
+          role: req.user.role,
+          customerId: userDet[0].customerId || null,
+        },
+      });
+    }
+    if (req.user.role === "Admin") {
+      return res.status(200).send({
+        success: true,
+        user: {
+          userId: req.user.id,
+          fullName: req.user.fullName,
+          email: req.user.email,
+          phone: req.user.phone,
+          role: req.user.role,
+          salonId: userDet[0].salonId || null,
+        },
+      });
+    }
+    if (req.user.role === "employee") {
+      return res.status(200).send({
+        success: true,
+        user: {
+          userId: req.user.id,
+          fullName: req.user.fullName,
+          email: req.user.email,
+          phone: req.user.phone,
+          role: req.user.role,
+          employeeId: userDet[0].employeeId || null,
+          salonId: userDet[0].salonId || null,
+        },
+      });
+    }
+
+    res.status(200).send({
+      success: true,
+      user: {
+        userId: req.user.id,
+        fullName: req.user.fullName,
+        email: req.user.email,
+        phone: req.user.phone,
+        role: req.user.role,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send({ success: false, message: "Server error" });
+  }
+};
+
+export const logoutUser = async (req, res) => {
+  try {
+    res.clearCookie("authToken", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    return res.status(200).send({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    return res.status(500).send({ success: false, message: "Server error" });
+  }
+};
+
+export const allowRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).send({ success: false, message: "Unauthorized" });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).send({ success: false, message: "Forbidden" });
+    }
+
+    next();
+  };
 };

@@ -5,7 +5,67 @@ import bcrypt from "bcrypt";
 
 export const getEmployee = async (req, res) => {
   try {
-    const employees = await Employee.find().select("-password");
+    const employees = await Employee.aggregate([
+      {
+        $lookup: {
+          from: "services",
+          localField: "Services",
+          foreignField: "_id",
+          as: "servicesDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "salons",
+          localField: "salonId",
+          foreignField: "_id",
+          as: "salonDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "employees",
+          localField: "employeeId",
+          foreignField: "_id",
+          as: "employeeDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$employeeDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$salonDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+
+      },
+      {
+        $project: {
+          services: {
+            $map: {
+              input: "$servicesDetails",
+              as: "service",
+              in: {
+                id: "$$service._id",
+                name: "$$service.name",
+                price: "$$service.price",
+              },
+            },
+          },
+          salonId: 1,
+          fullName: 1,
+          email: 1,
+          role: 1,
+          isActive: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    ]);
     res.status(200).json(employees);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -25,7 +85,9 @@ export const addEmployee = async (req, res) => {
 
     const existing = await Employee.findOne({ email, salonId });
     if (existing) {
-      return res.status(409).json({ message: "Email already exists for this salon" });
+      return res
+        .status(409)
+        .json({ message: "Email already exists for this salon" });
     }
     const User = await Customer.findOne({ email });
     if (User) {
@@ -46,7 +108,6 @@ export const addEmployee = async (req, res) => {
       password: hashedPassword,
       role: "employee",
     });
-    
 
     const user = await Customer.create({
       fullName,
@@ -56,6 +117,7 @@ export const addEmployee = async (req, res) => {
       isActive: isActive ?? true,
       role: "employee",
       salonId,
+      employeeId: employee._id,
     });
 
     const salon = await Salon.findById(salonId);

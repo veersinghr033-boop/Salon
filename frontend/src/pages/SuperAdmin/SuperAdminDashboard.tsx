@@ -20,19 +20,13 @@ export default function DashboardLayout() {
     const [bookings, setBookings] = useState<any[]>([]);
     const load = async () => {
         const response = await fetch("http://localhost:3500/api/auth/salon", {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            credentials: "include",
         });
         const userResponse = await fetch("http://localhost:3500/api/auth/users", {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            credentials: "include",
         });
         const bookingResponse = await fetch("http://localhost:3500/api/auth/bookings", {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            credentials: "include",
         })
         const data = await response.json();
         const users = await userResponse.json();

@@ -6,11 +6,11 @@ const bookingSchema = new mongoose.Schema(
       ref: "users",
       required: true,
     },
-    // bookingId: {
-    //   type: String,
-    //   unique: true,
-    //   required: true,
-    // },
+    bookingId: {
+      type: String,
+      unique: true,
+      required: true,
+    },
 
     salonId: {
       type: mongoose.Schema.Types.ObjectId,

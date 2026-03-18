@@ -1,53 +1,66 @@
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { Input, Button, message } from "antd";
 import { MailOutlined, LockOutlined, EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+// import { apiPost } from "../../utills/api";
 import "../../index.css";
 
-const Login = () => {
+const Login = memo(() => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     // const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { checkAuth } = useAuth();
+
+    const userRole =useCallback( (role: string) => {
+        if (role === "superadmin") {
+            navigate("/superAdmin");
+        }
+        else if (role === "Admin") {
+            navigate("/admin");
+        }
+        else if (role === "employee") {
+            navigate("/employee");
+        }
+        else {
+            navigate("/customer");
+        }
+    }, [navigate]);
 
 
     const handleSignIn = async () => {
         setLoading(true);
+
+        const userEmail = email.trim();
+        const Password = password.trim();
+
         try {
-            const response = await fetch("http://localhost:3500/api/auth/login", {
+            const res = await fetch("http://localhost:3500/api/auth/login", {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-
-
                 },
-                body: JSON.stringify({ email, password }),
-            });
-            const data = await response.json();
+                body: JSON.stringify({ email: userEmail, password: Password }),
+            })
+            const data = await res.json();
+            if (res.ok && data?.token) {
+                // localStorage.setItem("token", data.token);
+                // message.success(data?.message || "Login successful!");
+                await checkAuth();
+                console.log("neee")
 
-            if (response.ok) {
+                userRole(data.user.role);
 
 
-                message.success("Login successful!");
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("user", JSON.stringify(data))  ;
-
-                if (data.role === "superadmin") {
-                    navigate("/superAdmin");
-                } else if (data.role === "Admin") {
-                    navigate("/admin");
-                } else if (data.role === "employee") {
-                    navigate("/employee");
-                } else {
-                    navigate("/customer");
-                }
-            }
-            else {
-                message.error(data.message || "Login failed. Please try again.");
+            } else {
+                message.error(data?.message || "Login failed. Please try again.");
+                console.log(data)
             }
         } catch (error) {
-            message.error("An error occurred. Please try again.");
+            message.error("Login failed. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -135,6 +148,6 @@ const Login = () => {
             </div>
         </div>
     );
-};
+});
 
 export default Login;

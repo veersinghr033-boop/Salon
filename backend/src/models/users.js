@@ -36,6 +36,14 @@ const customerSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    employeeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "employee",
+    },
+    customerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Customer",
+    },
     salonId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Salon",

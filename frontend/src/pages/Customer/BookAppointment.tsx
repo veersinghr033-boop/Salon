@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Card, DatePicker, message } from "antd";
 import { CheckCircleOutlined } from "@ant-design/icons";
@@ -46,18 +46,30 @@ const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customer
     };
 
 
-    const selectedServices = services.filter(s =>
-        selectedServiceIds.includes(s.id)
+    const selectedServices = useMemo(
+        () =>
+            services.filter(s =>
+                selectedServiceIds.includes(s.id)
+            ),
+        [services, selectedServiceIds]
     );
 
-    const totalDuration = selectedServices.reduce(
-        (sum, s) => sum + s.duration,
-        0
+    const totalDuration = useMemo(
+        () =>
+            selectedServices.reduce(
+                (sum, s) => sum + s.duration,
+                0
+            ),
+        [selectedServices]
     );
 
-    const totalPrice = selectedServices.reduce(
-        (sum, s) => sum + s.price,
-        0
+    const totalPrice = useMemo(
+        () =>
+            selectedServices.reduce(
+                (sum, s) => sum + s.price,
+                0
+            ),
+        [selectedServices]
     );
     const generateTimeSlots = (date: string) => {
         if (!date) return;
@@ -113,8 +125,12 @@ const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customer
     }, [selectedServiceIds]);
 
 
-    const selectedEmployee = employees.find(
-        e => e.id === selectedEmployeeId
+    const selectedEmployee = useMemo(
+        () =>
+            employees.find(
+                e => e.id === selectedEmployeeId
+            ),
+        [employees, selectedEmployeeId]
     );
 
     const confirmBooking = async () => {
@@ -136,14 +152,14 @@ const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customer
             console.log("Booking payload:", bookingPayload);
             const response = await fetch("http://localhost:3500/api/auth/bookings", {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
                 },
                 body: JSON.stringify(bookingPayload),
             });
             const data = await response.json();
-            if (response.ok) {
+            if (response.ok && data.booking) {
                 message.success("Booking confirmed!");
                 navigate("/customer/bookings");
                 onClose();
@@ -329,7 +345,7 @@ const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customer
                         ))}
                         <div className="border-t border-gray-200 pt-2">
                             <p className="font-semibold text-gray-800">
-                                Total: ₹{selectedServices.reduce((sum, s) => sum + s.price, 0)}
+                                Total: ₹{totalPrice}
                             </p>
                         </div>
                     </div>
@@ -370,4 +386,4 @@ const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customer
     );
 };
 
-export default BookingFlow;
+export default memo(BookingFlow);

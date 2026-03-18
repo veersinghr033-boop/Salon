@@ -5,7 +5,7 @@ export const getBookings = async (req, res) => {
     const bookings = await Booking.aggregate([
       {
         $lookup: {
-          from: "users",
+          from: "customers",
           localField: "customerId",
           foreignField: "_id",
           as: "customer",
@@ -42,7 +42,8 @@ export const getBookings = async (req, res) => {
 
       {
         $project: {
-          bookingId: { $toString: "$_id" },
+          id: 1,
+          bookingId: 1,
           date: 1,
           time: 1,
           totalPrice: 1,
@@ -114,11 +115,11 @@ export const createBooking = async (req, res) => {
 
     console.log("Creating booking with serviceId:", serviceId);
     // Generate a unique bookingId using uuid to avoid collisions between requests
-    const bookingId = `BKG-${Math.floor(Math.random() * 10000)}`;
+    const bookingId = `BK-${Math.floor(Math.random() * 10000)}`;
     console.log("Generated bookingId:", bookingId);
     const newBooking = await Booking.create({
       customerId,
-      // bookingId,
+      bookingId,
       salonId,
       employeeId,
       services: Array.isArray(serviceId) ? serviceId : [serviceId],

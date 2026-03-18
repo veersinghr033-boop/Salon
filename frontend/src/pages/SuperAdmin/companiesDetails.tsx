@@ -31,9 +31,7 @@ function CompaniesDetails() {
 
   const loadCompanies = async () => {
     const response = await fetch("http://localhost:3500/api/auth/salon", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      credentials: "include",
     });
     const data = await response.json();
     const filteredData = data.filter((salon: any) => salon.isApproved).map((salon: any) => ({
@@ -65,9 +63,7 @@ function CompaniesDetails() {
   const handleToggleStatus = async (key: string) => {
     const res = await fetch(`http://localhost:3500/api/auth/salon/${key}/toggle`, {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      credentials: "include",
     });
     if (!res.ok) {
       throw new Error("Failed to toggle salon status");

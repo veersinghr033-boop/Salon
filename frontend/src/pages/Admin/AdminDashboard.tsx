@@ -10,6 +10,8 @@ import Sidebar from "../../components/Sidebar";
 import StatCard from "../../components/StatCard";
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
+import { useAuth } from "../../context/AuthContext";
+
 
 const { Content } = Layout;
 
@@ -36,34 +38,28 @@ function AdminDashboard() {
 
 
 
-   
-
     const [salonId, setSalonId] = useState<string>("");
     const [booking, setBookings] = useState<Booking[]>([]);
     const [services, setServices] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
-
+    const { user } = useAuth();
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        if (user.role === "Admin" && user.salonId) {
-            setSalonId(user.salonId);
+        if (user?.role === "Admin" && user?.salonId) {
+            setSalonId(user?.salonId);
         }
     }, []);
-    console.log(salonId)
+
+
 
     const loadalldata = async () => {
         try {
             const [bookingRes, serviceRes, employeeRes] = await Promise.all([
                 fetch("http://localhost:3500/api/auth/bookings"),
                 fetch("http://localhost:3500/api/auth/services", {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
+                    credentials: "include",
                 }),
                 fetch("http://localhost:3500/api/auth/employees", {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
+                    credentials: "include",
                 }),
             ]);
 

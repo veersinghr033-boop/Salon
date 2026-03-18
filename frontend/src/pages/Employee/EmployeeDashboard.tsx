@@ -1,6 +1,7 @@
 import { Layout, Card, Table, Tag, message } from "antd";
 import Sidebar from "../../components/Sidebar";
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import dayjs from "dayjs";
 
 const { Content } = Layout;
@@ -32,28 +33,20 @@ function EmployeeDashboard() {
     const [loading, setLoading] = useState(false);
     const [employeeId, setEmployeeId] = useState<string | null>(null);
     const [bookings, setBookings] = useState<Booking[]>([]);
-
-    // Convert start time + duration → end time
-
-    useEffect(() => {
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-
-        if (storedUser.role === "employee" && storedUser.employee?.id) {
-
-            setEmployeeId(storedUser.employee.id);
-
+    const { user } = useAuth();
+    useEffect(()=>{
+        if(user?.role === "employee"){
+            setEmployeeId(user?.employeeId || null);
         }
 
-    }, []);
-    // console.log(userName)
+    },[user])
+    console.log("Employee ID:", employeeId);
     const loadBookings = async () => {
         try {
             setLoading(true);
 
             const res = await fetch("http://localhost:3500/api/auth/bookings", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
+                credentials: "include",
             });
 
             const response = await res.json();

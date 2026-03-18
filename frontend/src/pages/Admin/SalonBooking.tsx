@@ -16,6 +16,7 @@ import {
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
+import { useAuth } from "../../context/AuthContext";
 
 const { Content } = Layout;
 
@@ -38,28 +39,25 @@ function SalonBooking() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
-
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState<any>(null);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedEmployee, setSelectedEmployee] = useState("all");
 
-
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-    if (storedUser.role === "Admin" && storedUser.salonId) {
-      setSalonId(storedUser.salonId);
+    if (user?.role === "Admin" && user.salonId) {
+      setSalonId(user.salonId);
     }
-  }, []);
+  }, [user]);
+
 
   console.log(salonId)
   const loadBookings = async () => {
     try {
       setLoading(true);
       const res = await fetch("http://localhost:3500/api/auth/bookings", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
       });
       const data = await res.json();
       console.log(data)
