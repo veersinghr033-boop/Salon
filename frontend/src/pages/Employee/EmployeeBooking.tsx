@@ -112,7 +112,7 @@ function EmployeeBooking() {
     const now = new Date();
 
     const filtered = data.filter((b) => {
-        const dt = dayjs(`${b.date} ${b.start}`, "YYYY-MM-DD hh:mm A").toDate();
+        const dt = dayjs(`${b.date} ${b.end}`, "YYYY-MM-DD hh:mm A").toDate();
 
         if (activeTab === "upcoming")
             return b.status !== "cancelled" && b.status !== "completed" && dt > now;
@@ -194,7 +194,7 @@ function EmployeeBooking() {
             title: "Actions",
             render: (_, record) => {
                 const bookingDateTime = dayjs(
-                    `${record.date} ${record.start}`,
+                    `${record.date} ${record.end}`,
                     "YYYY-MM-DD hh:mm A"
                 ).toDate();
 

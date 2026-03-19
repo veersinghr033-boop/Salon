@@ -9,7 +9,7 @@ import {
     AppstoreOutlined,
     BankOutlined
 } from "@ant-design/icons";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
@@ -31,11 +31,12 @@ interface SidebarProps {
 export default function Sidebar({ title = "SaloonBook", items: passedItems, userName: passedUserName, userRole: passedUserRole }: SidebarProps) {
 
     const location = useLocation();
+    const navigate = useNavigate();
     const [open, setOpen] = useState(false);
     const [role, setRole] = useState<string | null>(null);
     const [userName, setUserName] = useState(passedUserName ?? "");
     const [userRole, setUserRole] = useState(passedUserRole ?? "");
-    const { logout,user } = useAuth();
+    const { logout, user } = useAuth();
 
     useEffect(() => {
         if (user) {
@@ -86,15 +87,16 @@ export default function Sidebar({ title = "SaloonBook", items: passedItems, user
     const activeKey =
         items.find((item) => item.path === location.pathname)?.key || "";
 
+
     return (
         <>
             <div className="md:hidden flex items-center gap-3 px-4 h-14 bg-white shadow sticky top-0 z-30">
-                <button
+                <Button
                     onClick={() => setOpen(true)}
-                    className="p-2 rounded-md bg-blue-500 text-white"
+                    className="p-2! rounded-md! bg-blue-500! text-white!"
                 >
                     <MenuOutlined />
-                </button>
+                </Button>
                 <span className="font-semibold text-lg">{title}</span>
             </div>
 
@@ -117,12 +119,12 @@ export default function Sidebar({ title = "SaloonBook", items: passedItems, user
                         </span>
                     </div>
 
-                    <button
-                        className="md:hidden text-white"
+                    <Button
+                        className="md:hidden! text-white!"
                         onClick={() => setOpen(false)}
                     >
                         <CloseOutlined />
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="flex flex-col h-[88%] justify-between">
@@ -151,15 +153,15 @@ export default function Sidebar({ title = "SaloonBook", items: passedItems, user
                     />
 
                     <div className="px-4 py-3 border-t border-blue-600">
-                        <div className="flex items-center gap-3 mb-4">
-                            <Avatar icon={<UserOutlined />} className="bg-blue-500!" />
+                        <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={() => {
+
+                            navigate("/profile");
+
+                        }}>
+                            <Avatar size={40} className="bg-blue-500" icon={<UserOutlined />} />
                             <div>
-                                <p className="text-sm font-medium text-white">
-                                    {userName}
-                                </p>
-                                <p className="text-xs text-blue-300">
-                                    {userRole}
-                                </p>
+                                <p className="text-sm font-semibold text-white">{userName}</p>
+                                <p className="text-xs text-blue-300">{userRole}</p>
                             </div>
                         </div>
 

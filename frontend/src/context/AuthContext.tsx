@@ -10,6 +10,7 @@ type User = {
     salonId?: string;
     employeeId?: string;
     customerId?: string;
+    phone?: string;
 };
 
 type AuthContextType = {
@@ -41,12 +42,15 @@ export const AuthProvider = (({ children }: { children: React.ReactNode; }) => {
 
             if (data.user) {
                 setUser(data.user);
-                console.log(data.user)
+                console.log("sdsd")
+                
             } else {
                 setUser(null);
-                
+                console.log("sdsdertyuiop")
+
 
             }
+            
         } catch (error) {
             console.error("Auth check failed:", error);
             setUser(null);

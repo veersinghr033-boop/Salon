@@ -97,6 +97,7 @@ function CustomerBooking() {
 
   useEffect(() => {
     if(customerId) loadBookings();
+
   }, [customerId]);
 
 
@@ -105,8 +106,12 @@ function CustomerBooking() {
   const enriched: EnrichedBooking[] = data.map((b) => ({
     ...b,
     datetime: dayjs(`${b.date} ${b.time}`, "YYYY-MM-DD hh:mm A").toDate(),
+    
   }));
+  console.log(now)
+  console.log(enriched)
 
+  
   const filtered = enriched.filter((b) => {
     if (activeTab === "upcoming")
       return b.status !== "cancelled" && b.status !== "completed" && b.datetime > now;

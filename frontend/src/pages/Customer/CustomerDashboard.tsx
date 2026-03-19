@@ -41,6 +41,7 @@ const CustomerDashboard: React.FC = () => {
             setCustormerId(user?.customerId || "")
         }
     },[user])
+    console.log(custormerId)
     const load = async () => {
         setLoading(true);
         try {

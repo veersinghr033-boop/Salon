@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, useEffect, memo } from "react";
 import { Input, Button, message } from "antd";
 import { MailOutlined, LockOutlined, EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
 import { useNavigate, Link } from "react-router-dom";
@@ -10,28 +10,38 @@ const Login = memo(() => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     // const [showPassword, setShowPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [signInLoading, setSignInLoading] = useState(false);
     const navigate = useNavigate();
-    const { checkAuth } = useAuth();
+    const { user, loading, checkAuth } = useAuth();
 
-    const userRole =useCallback( (role: string) => {
+
+
+    const userRole = useCallback((role: string) => {
         if (role === "superadmin") {
-            navigate("/superAdmin");
+            navigate("/superAdmin", { replace: true });
         }
         else if (role === "Admin") {
-            navigate("/admin");
+            navigate("/admin", { replace: true });
         }
         else if (role === "employee") {
-            navigate("/employee");
+            navigate("/employee", { replace: true });
+        }
+        else if (role === "customer") {
+            navigate("/customer", { replace: true });
         }
         else {
-            navigate("/customer");
+            navigate("/login", { replace: true });
         }
     }, [navigate]);
+    useEffect(() => {
+        if (!loading && user) {
+            userRole(user.role);
+        }
+    }, [loading, user, userRole]);
 
 
     const handleSignIn = async () => {
-        setLoading(true);
+        setSignInLoading(true);
 
         const userEmail = email.trim();
         const Password = password.trim();
@@ -46,13 +56,12 @@ const Login = memo(() => {
                 body: JSON.stringify({ email: userEmail, password: Password }),
             })
             const data = await res.json();
-            if (res.ok && data?.token) {
-                // localStorage.setItem("token", data.token);
-                // message.success(data?.message || "Login successful!");
+
+            if (res.ok && data.user) {
                 await checkAuth();
-                console.log("neee")
 
                 userRole(data.user.role);
+                console.log("Login successful:", data);
 
 
             } else {
@@ -62,7 +71,7 @@ const Login = memo(() => {
         } catch (error) {
             message.error("Login failed. Please try again.");
         } finally {
-            setLoading(false);
+            setSignInLoading(false);
         }
     };
 
@@ -128,7 +137,7 @@ const Login = memo(() => {
                         type="primary"
                         size="large"
                         block
-                        loading={loading}
+                        loading={signInLoading}
                         onClick={handleSignIn}
                         rootClassName="!bg-blue-500 !text-white !font-semibold !rounded-lg !h-12 !text-base hover:!bg-blue-600"
                     >

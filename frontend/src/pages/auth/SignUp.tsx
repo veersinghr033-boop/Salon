@@ -38,7 +38,6 @@ const SignUp = () => {
         confirmPassword: "",
     });
 
-    /* ---------------- VALIDATION ---------------- */
     const validateCustomer = () => {
         const { fullName, email, phone, password, confirmPassword } = customerForm;
         if (!fullName || !email || !phone || !password || !confirmPassword) {
@@ -116,7 +115,7 @@ const SignUp = () => {
                     : "Account created successfully!"
             );
 
-            navigate(userType === "barber" ? "/login" : "/customer");
+            navigate("/login");
         } catch (error) {
             message.error("Server error");
         } finally {

@@ -1,9 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { Spin} from "antd";
+import { Spin } from "antd";
 
 // import RoleGuard from "../components/RoleGuard";
-const RoleGuard = lazy(() => import("../components/RoleGuard"));
+const RoleGuard = lazy(() => import("../components/Protected"));
 const Home = lazy(() => import("../pages/Home"));
 const Login = lazy(() => import("../pages/auth/Login"));
 const SignUp = lazy(() => import("../pages/auth/SignUp"));
@@ -24,6 +24,7 @@ const EmployeeBooking = lazy(() => import("../pages/Employee/EmployeeBooking"));
 
 const CustomerDashboard = lazy(() => import("../pages/Customer/CustomerDashboard"));
 const CustomerBooking = lazy(() => import("../pages/Customer/CustomerBooking"));
+const UserProfile = lazy(() => import("../pages/userProfile"));
 
 export default function AppRoutes() {
 
@@ -68,6 +69,14 @@ export default function AppRoutes() {
                     }
                 />
 
+                <Route path="/profile"
+                    element={
+                        <RoleGuard allowedRoles={["superadmin", "admin", "employee", "customer"]}>
+                            <UserProfile />
+                        </RoleGuard>
+                    }
+                />
+
                 <Route path="/admin"
                     element={
                         <RoleGuard allowedRoles={["Admin"]}>
@@ -108,6 +117,7 @@ export default function AppRoutes() {
                     }
                 />
 
+
                 <Route path="/employee"
                     element={
                         <RoleGuard allowedRoles={["employee"]}>
@@ -123,7 +133,6 @@ export default function AppRoutes() {
                         </RoleGuard>
                     }
                 />
-
                 <Route path="/customer"
                     element={
                         <RoleGuard allowedRoles={["customer"]}>
@@ -139,7 +148,6 @@ export default function AppRoutes() {
                         </RoleGuard>
                     }
                 />
-
             </Routes>
         </Suspense>
     );
