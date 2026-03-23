@@ -235,6 +235,7 @@ const CustomerDashboard: React.FC = () => {
                             salonName={viewSalon.name}
                             services={viewSalon.services || []}
                             employees={viewSalon.employees || []}
+                            
                             hours={viewSalon.hours || {}}
                             customerId={custormerId}
                             onClose={() => setIsBookingOpen(false)}

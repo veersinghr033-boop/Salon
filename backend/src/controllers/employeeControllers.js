@@ -1,6 +1,7 @@
 import Employee from "../models/employeeModel.js";
 import Salon from "../models/salonModel.js";
 import Customer from "../models/users.js";
+import Booking from "../models/bookingModel.js";
 import bcrypt from "bcrypt";
 
 export const getEmployee = async (req, res) => {
@@ -41,7 +42,6 @@ export const getEmployee = async (req, res) => {
           path: "$salonDetails",
           preserveNullAndEmptyArrays: true,
         },
-
       },
       {
         $project: {
@@ -167,5 +167,38 @@ export const deleteEmployee = async (req, res) => {
     // res.status(200).json({ message: "Employee deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+export const getEmployeeById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [employee, bookings] = await Promise.all([
+      Employee.findById(id)
+        .select("-password")
+        .populate("Services", "name price"),
+
+      Booking.find({ employeeId: id }).select("date time totalDuration"),
+    ]);
+
+    if (!employee) {
+      return res.status(404).json({
+        message: "Employee not found",
+      });
+    }
+
+    res.status(200).json({
+      employee,
+      bookedSlots: bookings.map((b) => ({
+        date: b.date,
+        time: b.time,
+        duration: b.totalDuration,
+      })),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };

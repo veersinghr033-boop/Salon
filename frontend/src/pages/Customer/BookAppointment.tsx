@@ -25,6 +25,11 @@ type Props = {
     customerId: string;
     onClose: () => void;
 };
+type Slot = {
+    time: string;
+    isBooked: boolean;
+};
+
 
 
 const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customerId, hours, salonId, onClose }) => {
@@ -34,7 +39,7 @@ const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customer
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-    const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+    const [availableTimeSlots, setAvailableTimeSlots] = useState<Slot[]>([]);
 
 
     const toggleService = (id: string) => {
@@ -71,52 +76,105 @@ const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customer
             ),
         [selectedServices]
     );
-    const generateTimeSlots = (date: string) => {
-        if (!date) return;
-
-        const day = new Date(date).toLocaleDateString("en-US", {
-            weekday: "short",
-        });
-
-        const dayHours = hours[day];
-
-        if (!dayHours || dayHours === "Closed") {
-            setAvailableTimeSlots([]);
-            return;
-        }
-
-        const [open, close] = dayHours.split(" - ");
-
-        const slots: string[] = [];
-
-        const [openHour, openMinute] = open.split(":").map(Number);
-        const [closeHour, closeMinute] = close.split(":").map(Number);
-
-        let current = new Date();
-        current.setHours(openHour, openMinute, 0, 0);
-
-        const closeTime = new Date();
-        closeTime.setHours(closeHour, closeMinute, 0, 0);
-
-        while (current < closeTime) {
-            slots.push(
-                current.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                })
-            );
-
-            current.setMinutes(current.getMinutes() + 30);
-        }
-
-        setAvailableTimeSlots(slots);
+    const formatTime = (date: Date) => {
+        return date.toTimeString().slice(0, 5);
     };
 
+    const formatDate = (date: string) => {
+        return new Date(date).toISOString().split("T")[0];
+    };
+    const isOverlapping = (slotTime: string, bookings: any[]) => {
+
+        const slotStart = new Date(`${selectedDate}T${slotTime}`);
+
+        const slotEnd = new Date(slotStart);
+        slotEnd.setMinutes(slotEnd.getMinutes() + totalDuration);
+
+        return bookings.some((b) => {
+
+            const bookingStart = new Date(`${formatDate(b.date)}T${b.time}`);
+
+            const bookingEnd = new Date(bookingStart);
+            bookingEnd.setMinutes(bookingEnd.getMinutes() + b.duration);
+
+            return slotStart < bookingEnd && slotEnd > bookingStart;
+        });
+    };
+    
+
+    
+    const generateTimeSlots = async (date: string) => {
+        if (!date || !selectedEmployeeId) return;
+
+        try {
+            const res = await fetch(
+                `http://localhost:3500/api/auth/employees/${selectedEmployeeId}`,
+                { credentials: "include" }
+            );
+
+            const data = await res.json();
+
+            const bookings = data.bookedSlots || [];
+
+            const filteredBookings = bookings.filter(
+                (b: any) => formatDate(b.date) === date
+            );
+
+            const day = new Date(date).toLocaleDateString("en-US", {
+                weekday: "short",
+            });
+
+            const dayHours = hours[day];
+
+            if (!dayHours || dayHours === "Closed") {
+                setAvailableTimeSlots([]);
+                return;
+            }
+
+            const [open, close] = dayHours.split(" - ");
+
+            const [oh, om] = open.split(":").map(Number);
+            const [ch, cm] = close.split(":").map(Number);
+
+            let current = new Date(date);
+            current.setHours(oh, om, 0, 0);
+
+            const closeTime = new Date(date);
+            closeTime.setHours(ch, cm, 0, 0);
+
+            const slots: Slot[] = [];
+
+            while (current < closeTime) {
+
+                const end = new Date(current);
+                end.setMinutes(end.getMinutes() + totalDuration);
+
+                if (end > closeTime) break;
+
+                const time = formatTime(current);
+
+                const isBooked = isOverlapping(time, filteredBookings);
+
+                slots.push({
+                    time,
+                    isBooked
+                });
+
+                current.setMinutes(current.getMinutes() + totalDuration);
+            }
+
+            setAvailableTimeSlots(slots);
+
+        } catch (err) {
+            console.error(err);
+            message.error("Slot loading failed");
+        }
+    };
     useEffect(() => {
-        if (selectedDate) {
+        if (selectedDate && selectedEmployeeId) {
             generateTimeSlots(selectedDate);
         }
-    }, [selectedDate]);
+    }, [selectedDate, selectedEmployeeId, totalDuration]);
 
     useEffect(() => {
         if (selectedServiceIds.length === 0) {
@@ -237,6 +295,11 @@ const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customer
                     <>
                         <h3 className="mb-2 font-medium">Select Date</h3>
                         <DatePicker
+                            disabledDate={current => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                return current && current.toDate() < today;
+                            }}
                             onChange={d =>
                                 setSelectedDate(
                                     d?.format("YYYY-MM-DD") || null
@@ -256,41 +319,7 @@ const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customer
                         </div>
                     </>
                 )}
-
                 {step === 3 && (
-                    <>
-                        <h3 className="mb-2 font-medium">Select Time</h3>
-
-                        <div className="flex flex-wrap gap-2">
-                            {availableTimeSlots.map(time => (
-                                <Button
-                                    key={time}
-                                    type={
-                                        selectedTime === time
-                                            ? "primary"
-                                            : "default"
-                                    }
-                                    onClick={() => setSelectedTime(time)}
-                                >
-                                    {time}
-                                </Button>
-                            ))}
-                        </div>
-
-                        <div className="mt-4 flex gap-2">
-                            <Button onClick={() => setStep(2)}>Back</Button>
-                            <Button
-                                type="primary"
-                                disabled={!selectedTime}
-                                onClick={() => setStep(4)}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </>
-                )}
-
-                {step === 4 && (
                     <>
                         <h3 className="mb-2 font-medium">
                             Select Employee
@@ -310,17 +339,53 @@ const BookingFlow: React.FC<Props> = ({ salonName, services, employees, customer
                                 {emp.name}
                             </Card>
                         ))}
+                        <div className="mt-4 flex gap-2">
+                            <Button onClick={() => setStep(2)}>Back</Button>
+                            <Button
+                                type="primary"
+                                disabled={!selectedEmployeeId}
+                                onClick={() => setStep(4)}
+                            >
+                                Next
+                            </Button>
+                        </div>
+
+
+                    </>
+                )}
+                {step === 4 && (
+                    <>
+                        <h3 className="mb-2 font-medium">Select Time</h3>
+
+                        <div className="flex flex-wrap gap-2">
+                            {availableTimeSlots.map(slot => (
+                                <Button
+                                    key={slot.time}
+                                    disabled={slot.isBooked}
+                                    type={selectedTime === slot.time ? "primary" : "default"}
+                                    onClick={() => setSelectedTime(slot.time)}
+                                    style={{
+                                        background: slot.isBooked ? "#f5f5f5" : "",
+                                        color: slot.isBooked ? "#999" : ""
+                                    }}
+                                >
+                                    {slot.time} 
+                                </Button>
+                            ))}
+                        </div>
+
 
                         <div className="mt-4 flex gap-2">
                             <Button onClick={() => setStep(3)}>Back</Button>
                             <Button
                                 type="primary"
-                                disabled={!selectedEmployeeId}
+                                disabled={!selectedTime}
                                 onClick={confirmBooking}
                             >
                                 Confirm Booking
                             </Button>
                         </div>
+
                     </>
                 )}
             </div>

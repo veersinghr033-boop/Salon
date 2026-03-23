@@ -8,6 +8,8 @@ import {
     message,
     Upload,
     Avatar,
+    Image,
+    type UploadProps,
 } from "antd";
 
 import {
@@ -17,11 +19,14 @@ import {
     MailOutlined,
     ClockCircleOutlined,
     UploadOutlined,
+    DeleteOutlined,
 } from "@ant-design/icons";
 
 import dayjs from "dayjs";
 import { memo, useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import PFP from "../../assets/pfp.png";
+
 
 const { Content } = Layout;
 
@@ -31,6 +36,7 @@ interface CompanyInfo {
     address: string;
     phone: string;
     email: string;
+    ownerName: string;
     logoUrl?: string;
 }
 
@@ -49,6 +55,7 @@ function CompanyProfile() {
     const [info, setInfo] = useState<CompanyInfo | null>(null);
     const [workingHours, setWorkingHours] = useState<WorkingHour[]>([]);
     const [salonId, setSalonId] = useState("");
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(PFP);
 
     useEffect(() => {
         if (user?.role === "Admin" && user?.salonId) {
@@ -77,6 +84,7 @@ function CompanyProfile() {
 
             setInfo({
                 name: salon.salonName,
+                ownerName: salon.ownerName,
                 description: salon.description,
                 address: salon.address,
                 phone: salon.phone,
@@ -113,8 +121,14 @@ function CompanyProfile() {
             message.error("Failed to load company info");
         }
     };
+    const beforeUpload: UploadProps["beforeUpload"] = (file) => {
+        // const isImage = file.type.startsWith("image/");
+        const reader = new FileReader();
+        reader.onload = () => setAvatarPreview(String(reader.result));
+        reader.readAsDataURL(file);
+        return false;
+    };
 
-    // save profile
     const handleSave = async () => {
         if (!info) return;
 
@@ -167,7 +181,6 @@ function CompanyProfile() {
         setEditMode(false);
     };
 
-    // change working hours
     const handleHoursChange = (
         index: number,
         key: keyof WorkingHour,
@@ -185,9 +198,18 @@ function CompanyProfile() {
             <Sidebar />
             <Content className="p-6 md:ml-64">
                 <header className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-semibold">Company Profile</h1>
+                    <h1 className="text-3xl font-semibold">Company Profile</h1>
 
-                    {!editMode && (
+                    {editMode ? (
+                        <div className="flex gap-2">
+                            <Button type="primary" onClick={() =>{ setEditMode(false), handleSave()}}>
+                                Save
+                            </Button>
+                            <Button onClick={() =>  setEditMode(false)}>
+                                Cancel
+                            </Button>
+                        </div>
+                    ) : (
                         <Button
                             type="primary"
                             icon={<EditOutlined />}
@@ -200,18 +222,53 @@ function CompanyProfile() {
 
                 <div className="grid lg:grid-cols-2 gap-6">
 
-                    {/* BASIC INFO */}
 
                     <div className="bg-white shadow rounded-xl p-5">
 
-                        <h2 className="text-lg font-semibold mb-4">
+                        <h2 className="text-2xl text-gray-600 font-semibold mb-4">
                             Basic Information
                         </h2>
 
                         <div className="space-y-4">
+                            <div className=" flex  items-center gap-4">
+                                <div className="relative inline-block group">
+                                    {(info?.logoUrl || avatarPreview) ? (
+                                        <Image
+                                            src={avatarPreview || info?.logoUrl}
+                                            alt="Company Logo"
+                                            width={100}
+                                            height={100}
+                                            className="rounded-lg object-square mb-4"
+                                        />
+                                    ) : (
+                                        <Avatar
+                                            size={100}
+                                            className="bg-gray-300 mb-4"
+                                        />
+                                    )}
+
+                                    {editMode && (info?.logoUrl || avatarPreview) && (
+                                        <Button
+
+                                            shape="circle"
+                                            size="small"
+                                            icon={<DeleteOutlined />}
+                                            className="absolute! bottom-10  left-10 opacity-0 transition-opacity duration-200 group-hover:opacity-50 bg-amber-300"
+                                            onClick={() => {
+                                                setAvatarPreview(null);
+                                                setInfo((prev) => (prev ? { ...prev, logoUrl: undefined } : prev));
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-semibold">{info?.ownerName || "Loading..."}</h2>
+                                    <p className="text-gray-500">{info?.email || "Loading..."}</p>
+                                </div>
+                            </div>
 
                             <div>
-                                <label>Company Name</label>
+                                <label className="text-lg">Company Name</label>
                                 <Input
                                     disabled={!editMode}
                                     value={info?.name || ""}
@@ -224,7 +281,7 @@ function CompanyProfile() {
                             </div>
 
                             <div>
-                                <label>Description</label>
+                                <label className="text-lg">Description</label>
                                 <Input.TextArea
                                     rows={3}
                                     disabled={!editMode}
@@ -240,7 +297,7 @@ function CompanyProfile() {
                             </div>
 
                             <div>
-                                <label>
+                                <label className="text-lg">
                                     <EnvironmentOutlined /> Address
                                 </label>
 
@@ -258,7 +315,7 @@ function CompanyProfile() {
                             </div>
 
                             <div>
-                                <label>
+                                <label className="text-lg">
                                     <PhoneOutlined /> Phone
                                 </label>
 
@@ -274,7 +331,7 @@ function CompanyProfile() {
                             </div>
 
                             <div>
-                                <label>
+                                <label className="text-lg">
                                     <MailOutlined /> Email
                                 </label>
 
@@ -290,48 +347,31 @@ function CompanyProfile() {
                             </div>
 
 
-                            <div>
-                               
-
+                            <div className="flex items-center gap-3">
                                 <Upload
                                     name="logo"
-                                    action={`http://localhost:3500/api/auth/salon/logo/${salonId}`}
-                                    headers={{
-                                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                                    }}
+                                    beforeUpload={beforeUpload}
                                     showUploadList={false}
                                     disabled={!editMode}
-                                    onChange={(infoFile) => {
-                                        if (infoFile.file.status === "done") {
-                                            message.success("Logo uploaded");
-                                            loadCompanyInfo();
-                                        }
-                                        if (infoFile.file.status === "error") {
-                                            message.error("Upload failed");
-                                        }
-                                    }}
+
                                 >
-                                    {info?.logoUrl ? (
-                                        <Avatar
-                                            src={`http://localhost:3500/${info.logoUrl}`}
-                                            size={100}
-                                            shape="square"
-                                        />
-                                    ) : (
-                                        <Button icon={<UploadOutlined />}>
-                                            Upload Logo
-                                        </Button>
-                                    )}
+
+
+                                    <Button icon={<UploadOutlined />} disabled={!editMode} >
+                                        Upload Background Image
+                                    </Button>
+
                                 </Upload>
+
                             </div>
                         </div>
                     </div>
 
-                   
+
 
                     <div className="bg-white shadow rounded-xl p-5">
 
-                        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                             <ClockCircleOutlined /> Working Hours
                         </h2>
 
@@ -341,7 +381,7 @@ function CompanyProfile() {
 
                                 <div
                                     key={item.day}
-                                    className="flex items-center justify-between border rounded-lg p-3"
+                                    className="flex items-center justify-between border border-gray-300 rounded-lg p-3"
                                 >
 
                                     <div className="font-medium">{item.day}</div>
@@ -412,21 +452,7 @@ function CompanyProfile() {
                     </div>
                 </div>
 
-                {editMode && (
-                    <div className="flex gap-3 mt-6">
-                        <Button
-                            type="primary"
-                            className="bg-green-600"
-                            onClick={handleSave}
-                        >
-                            Save Changes
-                        </Button>
-
-                        <Button danger onClick={handleCancel}>
-                            Cancel
-                        </Button>
-                    </div>
-                )}
+              
             </Content>
         </Layout>
     );

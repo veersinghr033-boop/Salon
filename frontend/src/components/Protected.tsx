@@ -1,5 +1,4 @@
 import { Navigate } from "react-router-dom";
-import type { ReactElement } from "react";
 import { memo, useEffect, useState } from "react";
 import { Spin } from 'antd';
 import { useAuth } from "../context/AuthContext";
@@ -7,16 +6,6 @@ import { useAuth } from "../context/AuthContext";
 interface Props {
     allowedRoles: string[];
     children: React.ReactNode;
-}
-interface User {
-    role: string;
-    fullName?: string;
-    email?: string;
-    userId?: string;
-    salonId?: string;
-    employeeId?: string;
-    customerId?: string;
-    phone?: string;
 }
 
 function RoleGuard({ allowedRoles, children }: Props) {
